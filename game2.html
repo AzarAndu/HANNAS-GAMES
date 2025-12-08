@@ -12,6 +12,7 @@ body {
     background: linear-gradient(to bottom right, #ffecd2, #fcb69f);
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
 
 .container {
@@ -21,6 +22,7 @@ body {
     padding: 20px;
     border-radius: 20px;
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    position: relative;
 }
 
 .hanna {
@@ -58,6 +60,19 @@ body {
     min-height: 50px;
 }
 
+.score {
+    font-size: 20px;
+    font-weight: bold;
+    color: #008cff;
+    margin-top: 10px;
+}
+
+.streak {
+    font-size: 18px;
+    color: #ff6600;
+    font-weight: bold;
+}
+
 .nextgame-btn {
     margin-top: 20px;
     padding: 15px 25px;
@@ -70,7 +85,7 @@ body {
     font-weight: bold;
 }
 
-/* ✅ Celebration Area */
+/* 🎉 Celebration */
 .celebration{
   margin-top:12px;
   min-height:36px;
@@ -78,7 +93,7 @@ body {
   text-align:center;
 }
 
-/* ✅ Confetti Canvas */
+/* 🎊 Confetti Canvas */
 #confetti-canvas{
   position:fixed;
   left:0;
@@ -89,7 +104,7 @@ body {
   z-index:9999;
 }
 
-/* ✅ Floating Star Animation */
+/* ⭐ Floating Stars */
 .star{
   display:inline-block;
   font-size:22px;
@@ -97,29 +112,43 @@ body {
   transform:translateY(8px) scale(0.8);
   animation:floatStar 2200ms ease-out forwards;
 }
-
 @keyframes floatStar{
   0% { opacity:0; transform:translateY(12px) scale(.6); }
   60% { opacity:1; transform:translateY(-6px) scale(1.05); }
   100% { opacity:0; transform:translateY(-30px) scale(.9); }
 }
 
-@media (max-width: 500px) {
-    .container {
-        max-width: 90%;
-        padding: 15px;
-    }
-    .question { font-size: 28px; }
-    .input-box { font-size: 24px; width: 130px; }
+/* 🌈 Rainbow Flash */
+.flash {
+    animation: rainbowFlash 600ms;
+}
+@keyframes rainbowFlash {
+    0% { background:#fff; }
+    20% { background:#ff0000; }
+    40% { background:#ffcc00; }
+    60% { background:#00ff00; }
+    80% { background:#00ccff; }
+    100% { background:#fff; }
+}
+
+/* 🎵 Music Button */
+.music-btn {
+    margin-top: 10px;
+    padding: 10px 15px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    background: #ff7b00;
+    color: white;
+    cursor: pointer;
 }
 </style>
 </head>
 <body>
 
-<!-- ✅ CONFETTI CANVAS -->
 <canvas id="confetti-canvas"></canvas>
 
-<div class="container">
+<div class="container" id="gameBox">
 
     <img src="hanna.jpeg" class="hanna" />
 
@@ -130,23 +159,27 @@ body {
     <div id="result" class="result"></div>
     <div id="emoji" class="emoji"></div>
 
-    <!-- ✅ Celebration Stars -->
+    <div class="score">Score: <span id="score">0</span></div>
+    <div class="streak">Streak: <span id="streak">0</span> 🔥</div>
+
     <div class="celebration" id="celebration"></div>
+
+    <button class="music-btn" onclick="toggleMusic()">🎵 Music: Off</button>
 
     <button class="nextgame-btn" onclick="goNextGame()">Next Game</button>
 
 </div>
 
-<!-- ✅ Sounds -->
-<audio id="correctSound">
-    <source src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3">
-</audio>
-<audio id="wrongSound">
-    <source src="https://assets.mixkit.co/active_storage/sfx/2037/2037-preview.mp3">
-</audio>
+<!-- 🔊 Sounds -->
+<audio id="correctSound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+<audio id="wrongSound" src="https://assets.mixkit.co/active_storage/sfx/2037/2037-preview.mp3"></audio>
+<audio id="bgMusic" loop src="https://assets.mixkit.co/active_storage/sfx/318/318-preview.mp3"></audio>
 
 <script>
 let num1, num2, correctAnswer;
+let score = 0;
+let streak = 0;
+let musicOn = false;
 
 function newQuestion() {
     num1 = Math.floor(Math.random() * 10) + 1;
@@ -159,7 +192,7 @@ function newQuestion() {
     document.getElementById("answerInput").value = "";
 }
 
-// ✅ Floating Stars
+/* ⭐ Stars */
 function spawnStars(count=8){
   const celebration = document.getElementById('celebration');
   celebration.innerHTML = '';
@@ -172,7 +205,7 @@ function spawnStars(count=8){
   }
 }
 
-// ✅ Confetti Engine
+/* 🎊 Confetti */
 const confetti = (function(){
   const canvas = document.getElementById('confetti-canvas');
   const ctx = canvas.getContext('2d');
@@ -188,15 +221,15 @@ const confetti = (function(){
 
   function rand(min,max){ return Math.random()*(max-min)+min; }
 
-  function createParticles(count=80){
+  function createParticles(count=100){
     for(let i=0;i<count;i++){
       particles.push({
-        x: rand(W*0.2, W*0.8),
-        y: rand(-50, -10),
+        x: rand(0, W),
+        y: rand(-50, 0),
         r: rand(6,12),
-        color: `hsl(${Math.floor(rand(0,360))}deg 80% 60%)`,
-        vx: rand(-0.6,0.6),
-        vy: rand(2,6),
+        color: `hsl(${Math.floor(rand(0,360))}, 80%, 60%)`,
+        vx: rand(-1,1),
+        vy: rand(3,7),
         life: rand(200,350)
       });
     }
@@ -204,10 +237,10 @@ const confetti = (function(){
 
   function render(){
     ctx.clearRect(0,0,W,H);
-    for(let p of particles){
+    particles.forEach(p=>{
       ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, p.r, p.r*0.6);
-    }
+      ctx.fillRect(p.x, p.y, p.r, p.r);
+    });
   }
 
   function update(){
@@ -249,7 +282,22 @@ function launchConfetti(){
   confetti.launch(150);
 }
 
-// ✅ Answer Checking with Celebration
+/* 🎵 Music Toggle */
+function toggleMusic(){
+  const music = document.getElementById("bgMusic");
+  const btn = document.querySelector(".music-btn");
+  if(!musicOn){
+    music.play();
+    musicOn = true;
+    btn.textContent = "🎵 Music: On";
+  } else {
+    music.pause();
+    musicOn = false;
+    btn.textContent = "🎵 Music: Off";
+  }
+}
+
+/* ✅ Answer Check */
 document.getElementById("answerInput").addEventListener("input", function () {
     let userAns = Number(this.value);
 
@@ -259,8 +307,18 @@ document.getElementById("answerInput").addEventListener("input", function () {
         document.getElementById("emoji").textContent = "😊🎉⭐";
         document.getElementById("correctSound").play();
 
+        score++;
+        streak++;
+
+        document.getElementById("score").textContent = score;
+        document.getElementById("streak").textContent = streak;
+
         launchConfetti();
         spawnStars(10);
+
+        const box = document.getElementById("gameBox");
+        box.classList.add("flash");
+        setTimeout(()=>box.classList.remove("flash"),600);
 
         setTimeout(newQuestion, 900);
     }
@@ -269,6 +327,8 @@ document.getElementById("answerInput").addEventListener("input", function () {
         document.getElementById("result").textContent = "Wrong ✘";
         document.getElementById("emoji").textContent = "😢";
         document.getElementById("wrongSound").play();
+        streak = 0;
+        document.getElementById("streak").textContent = streak;
     }
 });
 
