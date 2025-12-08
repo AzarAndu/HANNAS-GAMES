@@ -6,82 +6,118 @@
 <title>Hanna Math Game</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        background: linear-gradient(to bottom right, #ffecd2, #fcb69f);
-        margin: 0;
-        padding: 0;
-    }
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom right, #ffecd2, #fcb69f);
+    margin: 0;
+    padding: 0;
+}
 
-    .container {
-        max-width: 480px;
-        margin: 20px auto;
-        background: white;
-        padding: 20px;
-        border-radius: 20px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.2);
-    }
-    .hanna {
+.container {
+    max-width: 480px;
+    margin: 20px auto;
+    background: white;
+    padding: 20px;
+    border-radius: 20px;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+
+.hanna {
     width: 257px;
     margin-right: -20px;
     margin-bottom: -19px;
 }
 
-
-  .question {
-     font-size: 27px;
+.question {
+    font-size: 27px;
     margin: -125px 0 15px 0;
     font-weight: bold;
     color: white;
 }
 
+.input-box {
+    font-size: 28px;
+    padding: 10px;
+    width: 150px;
+    border-radius: 10px;
+    border: 2px solid #444;
+    text-align: center;
+    margin-top: 96px;
+}
 
-    .input-box {
-        font-size: 28px;
-        padding: 10px;
-        width: 150px;
-        border-radius: 10px;
-        border: 2px solid #444;
-        text-align: center;
-         margin-top: 96px;
-    }
+.result {
+    font-size: 28px;
+    margin-top: 10px;
+    min-height: 40px;
+}
 
-    .result {
-        font-size: 28px;
-        margin-top: 10px;
-        min-height: 40px;
-    }
+.emoji {
+    font-size: 40px;
+    margin-top: 10px;
+    min-height: 50px;
+}
 
-    .emoji {
-        font-size: 40px;
-        margin-top: 10px;
-        min-height: 50px;
-    }
+.nextgame-btn {
+    margin-top: 20px;
+    padding: 15px 25px;
+    background: #008cff;
+    color: white;
+    border: none;
+    font-size: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+}
 
-    .nextgame-btn {
-        margin-top: 20px;
-        padding: 15px 25px;
-        background: #008cff;
-        color: white;
-        border: none;
-        font-size: 20px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: bold;
-    }
+/* ✅ Celebration Area */
+.celebration{
+  margin-top:12px;
+  min-height:36px;
+  pointer-events:none;
+  text-align:center;
+}
 
-    @media (max-width: 500px) {
-        .container {
-            max-width: 90%;
-            padding: 15px;
-        }
-        .question { font-size: 28px; }
-        .input-box { font-size: 24px; width: 130px; }
+/* ✅ Confetti Canvas */
+#confetti-canvas{
+  position:fixed;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:9999;
+}
+
+/* ✅ Floating Star Animation */
+.star{
+  display:inline-block;
+  font-size:22px;
+  opacity:0;
+  transform:translateY(8px) scale(0.8);
+  animation:floatStar 2200ms ease-out forwards;
+}
+
+@keyframes floatStar{
+  0% { opacity:0; transform:translateY(12px) scale(.6); }
+  60% { opacity:1; transform:translateY(-6px) scale(1.05); }
+  100% { opacity:0; transform:translateY(-30px) scale(.9); }
+}
+
+@media (max-width: 500px) {
+    .container {
+        max-width: 90%;
+        padding: 15px;
     }
+    .question { font-size: 28px; }
+    .input-box { font-size: 24px; width: 130px; }
+}
 </style>
 </head>
 <body>
+
+<!-- ✅ CONFETTI CANVAS -->
+<canvas id="confetti-canvas"></canvas>
 
 <div class="container">
 
@@ -94,11 +130,14 @@
     <div id="result" class="result"></div>
     <div id="emoji" class="emoji"></div>
 
+    <!-- ✅ Celebration Stars -->
+    <div class="celebration" id="celebration"></div>
+
     <button class="nextgame-btn" onclick="goNextGame()">Next Game</button>
 
 </div>
 
-<!-- Sounds -->
+<!-- ✅ Sounds -->
 <audio id="correctSound">
     <source src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3">
 </audio>
@@ -112,16 +151,105 @@ let num1, num2, correctAnswer;
 function newQuestion() {
     num1 = Math.floor(Math.random() * 10) + 1;
     num2 = Math.floor(Math.random() * 10) + 1;
-
     correctAnswer = num1 + num2;
 
     document.getElementById("question").textContent = `${num1} + ${num2} = ?`;
-
     document.getElementById("result").textContent = "";
     document.getElementById("emoji").textContent = "";
     document.getElementById("answerInput").value = "";
 }
 
+// ✅ Floating Stars
+function spawnStars(count=8){
+  const celebration = document.getElementById('celebration');
+  celebration.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const s = document.createElement('span');
+    s.className = 'star';
+    s.textContent = i%2===0 ? '⭐' : '✨';
+    s.style.animationDelay = (i*80)+'ms';
+    celebration.appendChild(s);
+  }
+}
+
+// ✅ Confetti Engine
+const confetti = (function(){
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  let W = canvas.width = innerWidth;
+  let H = canvas.height = innerHeight;
+  let particles = [];
+  let running = false;
+
+  window.addEventListener('resize', ()=>{
+    W = canvas.width = innerWidth;
+    H = canvas.height = innerHeight;
+  });
+
+  function rand(min,max){ return Math.random()*(max-min)+min; }
+
+  function createParticles(count=80){
+    for(let i=0;i<count;i++){
+      particles.push({
+        x: rand(W*0.2, W*0.8),
+        y: rand(-50, -10),
+        r: rand(6,12),
+        color: `hsl(${Math.floor(rand(0,360))}deg 80% 60%)`,
+        vx: rand(-0.6,0.6),
+        vy: rand(2,6),
+        life: rand(200,350)
+      });
+    }
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    for(let p of particles){
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x, p.y, p.r, p.r*0.6);
+    }
+  }
+
+  function update(){
+    for(let i=particles.length-1;i>=0;i--){
+      let p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life--;
+      if(p.y > H + 20 || p.life <= 0){
+        particles.splice(i,1);
+      }
+    }
+  }
+
+  function loop(){
+    if(!running) return;
+    update();
+    render();
+    if(particles.length === 0){
+      running = false;
+      ctx.clearRect(0,0,W,H);
+      return;
+    }
+    requestAnimationFrame(loop);
+  }
+
+  return {
+    launch(count=120){
+      createParticles(count);
+      if(!running){
+        running = true;
+        loop();
+      }
+    }
+  };
+})();
+
+function launchConfetti(){
+  confetti.launch(150);
+}
+
+// ✅ Answer Checking with Celebration
 document.getElementById("answerInput").addEventListener("input", function () {
     let userAns = Number(this.value);
 
@@ -131,7 +259,10 @@ document.getElementById("answerInput").addEventListener("input", function () {
         document.getElementById("emoji").textContent = "😊🎉⭐";
         document.getElementById("correctSound").play();
 
-        setTimeout(newQuestion, 900); // auto load next question
+        launchConfetti();
+        spawnStars(10);
+
+        setTimeout(newQuestion, 900);
     }
     else if (this.value !== "") {
         document.getElementById("result").style.color = "red";
