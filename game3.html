@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Little Math Adventures — + / − Game</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Libraries (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.2/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js" defer></script>
+
+  <style>
+    :root{
+      --bg1:#ffefd5;
+      --bg2:#ffe4e1;
+      --card:#ffffff;
+      --accent:#ff8da1;
+      --accent-2:#6ad7ff;
+      --text:#2b2b2b;
+      --muted:#6b6b6b;
+      --success:#2fc27b;
+      --danger:#ff6b6b;
+      font-family: "Baloo 2", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background:radial-gradient(circle at 10% 20%, var(--bg1), var(--bg2) 60%); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale}
+    .page{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    /* Game container */
+    .game {
+      width:100%;
+      max-width:980px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.98));
+      border-radius:20px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+      overflow:hidden;
+      display:grid;
+      grid-template-columns: 1fr 380px;
+      gap:0;
+    }
+
+    /* Left / stage */
+    .stage{
+      padding:28px;
+      position:relative;
+      min-height:520px;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      align-items:center;
+      gap:14px;
+      background-image: linear-gradient(180deg, rgba(255,255,255,0.35), transparent);
+      overflow:hidden;
+    }
+
+    /* Background animated shapes */
+    .bubble, .star {
+      position:absolute;
+      border-radius:50%;
+      opacity:0.18;
+      filter: blur(8px);
+      pointer-events:none;
+    }
+    .bubble { background:var(--accent-2); width:220px; height:220px; left:-60px; top:-40px; transform:rotate(15deg) }
+    .star { background:var(--accent); width:160px; height:160px; right:-40px; bottom:-60px; transform:rotate(-10deg) }
+
+    header.topbar{
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+    }
+    .logo {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      font-weight:700;
+      font-size:20px;
+    }
+    .logo img{width:56px;height:56px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.12)}
+    .controls {
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .btn {
+      background:linear-gradient(180deg, #fff, #f7f7f7);
+      border:0;
+      padding:10px 14px;
+      font-weight:700;
+      border-radius:12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      cursor:pointer;
+      user-select:none;
+    }
+    .icon-btn {
+      width:44px;height:44px;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;
+    }
+
+    /* Game card */
+    .card {
+      width:100%;
+      max-width:720px;
+      background:linear-gradient(180deg,#fff,#fff);
+      border-radius:18px;
+      padding:22px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+    }
+    .character-row{
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+    .character {
+      width:120px;
+      height:120px;
+      border-radius:16px;
+      background:linear-gradient(180deg,#fff,#f0f7ff);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .character img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+
+    /* Question / input area */
+    .question-wrap{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      width:100%;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .question {
+      font-size:44px;
+      font-weight:800;
+      background:linear-gradient(90deg,#fff,#fff);
+      padding:10px 24px;
+      border-radius:14px;
+      min-width:220px;
+      text-align:center;
+      box-shadow: inset 0 -6px 20px rgba(0,0,0,0.03);
+    }
+    input.answer {
+      font-size:36px;
+      padding:12px 18px;
+      border-radius:12px;
+      width:180px;
+      border:2px solid rgba(0,0,0,0.06);
+      text-align:center;
+    }
+    .feedback {
+      height:34px;
+      font-weight:700;
+      margin-top:6px;
+    }
+
+    /* Right column / stats & options */
+    .sidebar{
+      padding:22px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      background:linear-gradient(180deg, rgba(250,250,255,0.65), rgba(255,255,255,0.85));
+      border-left:1px dashed rgba(0,0,0,0.03);
+      min-width:300px;
+    }
+    .panel {
+      background:linear-gradient(180deg,#ffffff,#fcfcff);
+      padding:14px;
+      border-radius:12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+    .stats {display:flex;gap:10px;flex-wrap:wrap}
+    .stat {
+      flex:1 1 45%;
+      background:linear-gradient(180deg,#fff,#fff);
+      padding:10px;
+      border-radius:10px;
+      text-align:center;
+    }
+    .stat .num {font-size:20px;font-weight:800}
+    .stat .label {font-size:12px;color:var(--muted);margin-top:6px}
+
+    .option-row {display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .toggle {display:flex;gap:8px;align-items:center}
+
+    /* footer small */
+    .small {font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+
+    /* animations */
+    @keyframes floaty {
+      0%{ transform: translateY(0) }
+      50%{ transform: translateY(-18px)}
+      100%{ transform: translateY(0) }
+    }
+    .character { animation: floaty 3.6s ease-in-out infinite; }
+
+    /* responsive */
+    @media (max-width:980px){
+      .game { grid-template-columns: 1fr; }
+      .sidebar { order:2; min-width:unset; }
+    }
+    @media (max-width:420px){
+      .question {font-size:36px}
+      input.answer {width:140px;font-size:28px}
+      .character {width:96px;height:96px}
+    }
+
+    /* visual success / error */
+    .correct { color:var(--success); font-weight:900; }
+    .wrong { color:var(--danger); font-weight:900; }
+
+    /* big friendly primary action */
+    .primary {
+      background: linear-gradient(180deg,var(--accent), #ff6f91);
+      color:white;
+      border:0;
+      padding:12px 18px;
+      border-radius:14px;
+      font-weight:800;
+      box-shadow: 0 8px 20px rgba(255,120,150,0.12);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="game" role="application" aria-labelledby="gameTitle">
+
+      <!-- Stage / Left -->
+      <section class="stage" aria-live="polite">
+        <div class="bubble" style="--i:1"></div>
+        <div class="star" style="--i:2"></div>
+
+        <header class="topbar">
+          <div class="logo" title="Little Math Adventures">
+            <img src="a" alt="cute mascot">
+            <div>
+              <div id="gameTitle" style="font-size:18px">Little Math Adventures</div>
+              <div class="small">+ and − practice • numbers 1–20</div>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="btn icon-btn" id="startMusic" title="Play / Pause music" aria-pressed="false">▶️</button>
+            <button class="btn icon-btn" id="voiceBtn" title="Narration On/Off" aria-pressed="false">🔊</button>
+            <button class="btn" id="resetProgress" title="Reset progress">Reset</button>
+          </div>
+        </header>
+
+        <main class="card" role="main">
+          <div class="character-row" style="width:100%;">
+            <div class="character" aria-hidden="true">
+              <!-- cute open-source cartoon art (hotlinked) -->
+              <img src="https://opengameart.org/sites/default/files/teacher_0.png" alt="cartoon character 1" onerror="this.style.display='none'">
+            </div>
+
+            <div style="flex:1; display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div class="question-wrap" aria-hidden="false">
+                <div class="question" id="questionText">3 + 4 = ?</div>
+                <input inputmode="numeric" pattern="[0-9]*" class="answer" id="answerInput" aria-label="Type your answer" autocomplete="off" />
+              </div>
+
+              <div class="feedback" id="feedback" aria-live="assertive"></div>
+
+              <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+                <button class="primary" id="submitBtn">Check</button>
+                <button class="btn" id="skipBtn">Skip</button>
+                <label style="font-size:13px;color:var(--muted);margin-left:8px">or press Enter</label>
+              </div>
+
+            </div>
+
+            <div class="character" aria-hidden="true">
+              <img src="https://opengameart.org/sites/default/files/bunny_0.png" alt="cartoon character 2" onerror="this.style.display='none'">
+            </div>
+          </div>
+
+          <div style="width:100%;display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:8px">
+            <div style="display:flex;flex-direction:column">
+              <div style="font-weight:800">Streak: <span id="streak">0</span></div>
+              <div style="font-size:13px;color:var(--muted)">Best: <span id="bestStreak">0</span></div>
+            </div>
+
+            <div style="text-align:center;">
+              <div style="font-size:14px;color:var(--muted)">Mode</div>
+              <div style="font-weight:800" id="modeLabel">Practice</div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;align-items:flex-end">
+              <div style="font-size:12px;color:var(--muted)">Questions</div>
+              <div style="font-weight:900;font-size:18px" id="qCount">0</div>
+            </div>
+          </div>
+
+        </main>
+
+      </section>
+
+      <!-- Sidebar / Right -->
+      <aside class="sidebar" aria-label="Game controls and stats">
+
+        <div class="panel">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="font-weight:800">Score & Stats</div>
+            <div style="font-size:13px;color:var(--muted)">Saved locally</div>
+          </div>
+
+          <div class="stats" style="margin-top:10px">
+            <div class="stat">
+              <div class="num" id="score">0</div>
+              <div class="label">Score</div>
+            </div>
+            <div class="stat">
+              <div class="num" id="highScore">0</div>
+              <div class="label">High score</div>
+            </div>
+
+            <div class="stat">
+              <div class="num" id="totalAnswered">0</div>
+              <div class="label">Answered</div>
+            </div>
+            <div class="stat">
+              <div class="num" id="accuracy">0%</div>
+              <div class="label">Accuracy</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div style="font-weight:800;margin-bottom:8px">Options</div>
+
+          <div class="option-row" style="margin-bottom:8px">
+            <div class="toggle">
+              <input id="modeToggle" type="checkbox" />
+              <label for="modeToggle">Timer mode (30s)</label>
+            </div>
+            <div style="font-size:13px;color:var(--muted)"><span id="timerDisplay">—</span></div>
+          </div>
+
+          <div class="option-row" style="margin-bottom:8px">
+            <div class="toggle">
+              <input id="narrationToggle" type="checkbox" checked />
+              <label for="narrationToggle">Voice narration</label>
+            </div>
+            <div class="toggle">
+              <input id="soundToggle" type="checkbox" checked />
+              <label for="soundToggle">Sound effects</label>
+            </div>
+          </div>
+
+          <div style="margin-top:6px">
+            <button class="btn" id="showHint">Show Hint</button>
+            <button class="btn" id="toggleTimerSettings">Reset Timer</button>
+          </div>
+        </div>
+
+        <div class="panel" style="display:flex;flex-direction:column;gap:8px;">
+          <div style="font-weight:800">Extra goodies</div>
+          <div style="font-size:13px;color:var(--muted)">Celebrations, animations, and voice feedback to encourage learning.</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" id="shareBtn">Share</button>
+            <button class="btn" id="exportBtn">Export</button>
+          </div>
+        </div>
+
+        <div class="small panel" style="text-align:center;">
+          Tip: For best experience allow sound and press the ▶ play button.
+        </div>
+
+      </aside>
+    </div>
+  </div>
+
+  <script>
+  // ----------------------------
+  // Little Math Adventures
+  // Single-file production-ready game
+  // ----------------------------
+
+  (function(){
+    // ---------- Utilities ----------
+    const $ = (sel) => document.querySelector(sel);
+    const qs = (sel) => document.querySelectorAll(sel);
+
+    // DOM elements
+    const questionText = $('#questionText');
+    const answerInput = $('#answerInput');
+    const submitBtn = $('#submitBtn');
+    const skipBtn = $('#skipBtn');
+    const feedback = $('#feedback');
+
+    const scoreEl = $('#score');
+    const highScoreEl = $('#highScore');
+    const totalAnsweredEl = $('#totalAnswered');
+    const accuracyEl = $('#accuracy');
+    const streakEl = $('#streak');
+    const bestStreakEl = $('#bestStreak');
+    const qCountEl = $('#qCount');
+
+    const modeToggle = $('#modeToggle');
+    const modeLabel = $('#modeLabel');
+    const timerDisplay = $('#timerDisplay');
+    const timerSettingsBtn = $('#toggleTimerSettings');
+    const startMusicBtn = $('#startMusic');
+    const voiceBtn = $('#voiceBtn');
+    const narrationToggle = $('#narrationToggle');
+    const soundToggle = $('#soundToggle');
+    const resetProgressBtn = $('#resetProgress');
+    const showHintBtn = $('#showHint');
+
+    // Game state
+    let currentQ = null;
+    let score = 0;
+    let highScore = 0;
+    let totalAnswered = 0;
+    let totalCorrect = 0;
+    let streak = 0;
+    let bestStreak = 0;
+    let qCount = 0;
+    let timerMode = false;
+    let timer = null;
+    let timerSeconds = 30;
+    let timerLeft = timerSeconds;
+    let narration = true;
+    let soundsOn = true;
+
+    // localStorage keys
+    const LS_KEY = 'little_math_adventures_v1';
+
+    // Initialize defaults & assets
+    const assets = {
+      // small friendly sounds (open-source like chime). We create small beep using data URLs for portability or use Howler with short base64 or simple oscillator when unavailable.
+      correct: 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg',
+      wrong: 'https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg',
+      click: 'https://actions.google.com/sounds/v1/ui/button_click.ogg',
+      bgMusic: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_1b9b7f6f61.mp3?filename=carefree-112017.mp3'
+    };
+
+    // Use Howler for audio control
+    // Will be initialized after Howler script loads (deferred). We wrap in a small ready check.
+    let soundBank = {
+      correct: null, wrong: null, click: null, bg: null
+    };
+
+    function initHowler(){
+      try {
+        soundBank.correct = new Howl({src:[assets.correct], volume:0.7});
+        soundBank.wrong = new Howl({src:[assets.wrong], volume:0.7});
+        soundBank.click = new Howl({src:[assets.click], volume:0.7});
+        soundBank.bg = new Howl({src:[assets.bgMusic], volume:0.35, loop:true});
+      } catch(e){
+        console.warn('Howler failed to init — sounds may be blocked or library missing', e);
+      }
+    }
+
+    // basic confetti wrapper
+    function celebrate() {
+      // burst from center
+      confetti({
+        particleCount: 90,
+        spread: 70,
+        origin: { y: 0.4 }
+      });
+      // little second burst
+      confetti({
+        particleCount: 50,
+        spread: 120,
+        origin: { y: 0.7 }
+      });
+    }
+
+    // speak helper using speechSynthesis
+    function speak(text, opts={}){
+      if(!narration || !('speechSynthesis' in window)) return;
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = opts.rate || 0.95;
+      u.pitch = opts.pitch || 1;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    // ---------- Persistence ----------
+    function loadState(){
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if(raw){
+          const st = JSON.parse(raw);
+          score = st.score || 0;
+          highScore = st.highScore || 0;
+          totalAnswered = st.totalAnswered || 0;
+          totalCorrect = st.totalCorrect || 0;
+          streak = st.streak || 0;
+          bestStreak = st.bestStreak || 0;
+          qCount = st.qCount || 0;
+        }
+      } catch(e){ console.warn('Failed loading state', e) }
+    }
+    function saveState(){
+      const st = { score, highScore, totalAnswered, totalCorrect, streak, bestStreak, qCount };
+      try { localStorage.setItem(LS_KEY, JSON.stringify(st)); } catch(e){ console.warn('Failed saving'); }
+    }
+    function resetProgress(){
+      if(!confirm('Reset saved progress?')) return;
+      score = 0; totalAnswered = 0; totalCorrect = 0; streak = 0; bestStreak = 0; qCount = 0; highScore = 0;
+      saveState(); updateUI();
+      flashFeedback('Progress reset', 'neutral');
+    }
+
+    // ---------- Game logic ----------
+    function randInt(min, max){
+      return Math.floor(Math.random()*(max-min+1))+min;
+    }
+
+    function generateQuestion(){
+      // choose operator + or - (50/50)
+      const op = Math.random() < 0.5 ? '+' : '-';
+      let a = randInt(1,20);
+      let b = randInt(1,20);
+
+      // ensure subtraction doesn't give negative or zero results
+      if(op === '-'){
+        if(a < b) [a,b] = [b,a]; // swap to make a >= b
+        if(a - b === 0){ // avoid zero result -> regenerate
+          a = randInt(2,20);
+          b = randInt(1,a-1);
+        }
+      }
+
+      // ensure addition results within 1..20? The user asked numbers range 1-20 — interpret as operands are 1-20; results can exceed 20 (that's fine)
+      // But for simplicity we keep operands inside 1-20, results may be up to 40.
+      const q = { a, b, op, answer: (op==='+') ? (a + b) : (a - b) };
+      currentQ = q;
+      qCount += 1;
+      updateUI();
+      return q;
+    }
+
+    function showQuestion(q){
+      questionText.textContent = `${q.a} ${q.op} ${q.b} = ?`;
+      answerInput.value = '';
+      answerInput.focus();
+      speak(`What is ${q.a} ${q.op === '+' ? 'plus' : 'minus'} ${q.b}?`);
+      // little pulse animation for question
+      gsap.fromTo(questionText, {scale:0.96}, {scale:1, duration:0.28, ease:'elastic.out(1,0.6)'});
+    }
+
+    function checkAnswer(){
+      const raw = answerInput.value.trim();
+      if(raw === '') { flashFeedback('Type an answer!', 'neutral'); return; }
+      if(!/^\d+$/.test(raw)){ flashFeedback('Please enter numbers only', 'neutral'); return; }
+      const val = Number(raw);
+      const correct = val === currentQ.answer;
+      totalAnswered++;
+      if(correct){
+        totalCorrect++;
+        streak++;
+        score += 10 + Math.min(50, streak*2); // reward streaks
+        if(streak > bestStreak) bestStreak = streak;
+        flashFeedback('Correct! 🎉', 'correct');
+        if(soundsOn && soundBank.correct) soundBank.correct.play();
+        celebrate();
+        // animate characters
+        gsap.fromTo('.character', {y:0, rotation:0}, {y:-18, rotation:6, duration:0.35, yoyo:true, repeat:1, ease:'power2.inOut'});
+        // narration
+        speak('Correct! Great job!');
+        // next question after tiny delay
+        setTimeout(()=> {
+          const q = generateQuestion();
+          showQuestion(q);
+        }, 700);
+      } else {
+        // wrong
+        streak = 0;
+        score = Math.max(0, score - 5);
+        flashFeedback(`Oops — ${val} is not right. Try again!`, 'wrong');
+        if(soundsOn && soundBank.wrong) soundBank.wrong.play();
+        speak('Try again');
+        // shake input
+        gsap.fromTo(answerInput, {x:-6}, {x:6, duration:0.12, repeat:5, yoyo:true, ease:'rough'});
+      }
+      // update high score & stats
+      if(score > highScore) { highScore = score; }
+      saveState();
+      updateUI();
+    }
+
+    function skipQuestion(){
+      flashFeedback('Skipped — new question', 'neutral');
+      if(soundsOn && soundBank.click) soundBank.click.play();
+      streak = 0;
+      score = Math.max(0, score - 2);
+      generateQuestion();
+      showQuestion(currentQ);
+      saveState();
+      updateUI();
+    }
+
+    // quick hint (gives + / - guidance)
+    function showHint(){
+      if(!currentQ) return;
+      const h = (currentQ.op === '+') ? `${currentQ.a} plus ${currentQ.b} equals ${currentQ.a + currentQ.b}` : `${currentQ.a} minus ${currentQ.b} equals ${currentQ.a - currentQ.b}`;
+      flashFeedback(h, 'neutral', 3600);
+      speak('Hint: ' + (currentQ.op === '+' ? 'addition' : 'subtraction') );
+    }
+
+    // Provide visual feedback
+    let feedbackTimer = null;
+    function flashFeedback(text, type='neutral', duration=1400){
+      clearTimeout(feedbackTimer);
+      feedback.textContent = text;
+      feedback.classList.remove('correct','wrong');
+      if(type === 'correct') feedback.classList.add('correct');
+      if(type === 'wrong') feedback.classList.add('wrong');
+      if(type === 'neutral') feedback.style.color = 'var(--muted)';
+      feedbackTimer = setTimeout(()=> {
+        feedback.textContent = '';
+        feedback.classList.remove('correct','wrong');
+        feedback.style.color = '';
+      }, duration);
+    }
+
+    // ---------- Timer Mode ----------
+    function startTimer(){
+      stopTimer();
+      timerLeft = timerSeconds;
+      timerDisplay.textContent = `${timerLeft}s`;
+      timer = setInterval(()=>{
+        timerLeft--;
+        timerDisplay.textContent = `${timerLeft}s`;
+        if(timerLeft <= 0){
+          clearInterval(timer);
+          // end round
+          speak('Time is up!');
+          flashFeedback(`Time's up! Score: ${score}`, 'neutral', 3000);
+          // show results: we will reset streak and load a new question
+          streak = 0;
+          generateQuestion();
+          showQuestion(currentQ);
+          saveState();
+          updateUI();
+        }
+      }, 1000);
+    }
+    function stopTimer(){
+      if(timer) clearInterval(timer);
+      timerDisplay.textContent = '—';
+    }
+
+    // ---------- UI updates ----------
+    function updateUI(){
+      scoreEl.textContent = score;
+      highScoreEl.textContent = highScore;
+      totalAnsweredEl.textContent = totalAnswered;
+      accuracyEl.textContent = totalAnswered ? `${Math.round((totalCorrect/totalAnswered)*100)}%` : '0%';
+      streakEl.textContent = streak;
+      bestStreakEl.textContent = bestStreak;
+      qCountEl.textContent = qCount;
+      modeLabel.textContent = modeToggle.checked ? 'Timer' : 'Practice';
+    }
+
+    // ---------- Events ----------
+    function bindEvents(){
+      submitBtn.addEventListener('click', ()=> {
+        if(soundsOn && soundBank.click) soundBank.click.play();
+        checkAnswer();
+      });
+      answerInput.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter') {
+          e.preventDefault();
+          submitBtn.click();
+        }
+      });
+      skipBtn.addEventListener('click', ()=> {
+        skipQuestion();
+      });
+
+      modeToggle.addEventListener('change', (e)=>{
+        timerMode = modeToggle.checked;
+        updateUI();
+        if(timerMode){
+          startTimer();
+        } else {
+          stopTimer();
+        }
+      });
+
+      narrationToggle.addEventListener('change', (e)=> {
+        narration = narrationToggle.checked;
+      });
+      soundToggle.addEventListener('change', (e)=> {
+        soundsOn = soundToggle.checked;
+        if(!soundsOn && soundBank.bg && soundBank.bg.playing()) soundBank.bg.pause();
+      });
+
+      startMusicBtn.addEventListener('click', ()=> {
+        if(soundBank.bg && soundBank.bg.playing()){
+          soundBank.bg.pause();
+          startMusicBtn.textContent = '▶️';
+          startMusicBtn.setAttribute('aria-pressed', 'false');
+        } else {
+          // start after user gesture
+          soundBank.bg && soundBank.bg.play();
+          startMusicBtn.textContent = '⏸';
+          startMusicBtn.setAttribute('aria-pressed', 'true');
+        }
+      });
+
+      voiceBtn.addEventListener('click', ()=> {
+        narration = !narration;
+        narrationToggle.checked = narration;
+        voiceBtn.setAttribute('aria-pressed', String(narration));
+        voiceBtn.textContent = narration ? '🔊' : '🔈';
+      });
+
+      resetProgressBtn.addEventListener('click', ()=> resetProgress());
+      showHintBtn.addEventListener('click', showHint);
+
+      // share/export basic
+      $('#shareBtn').addEventListener('click', ()=>{
+        const msg = `My score: ${score} on Little Math Adventures! Try it out!`;
+        if(navigator.share) {
+          navigator.share({title:'Little Math Adventures', text:msg});
+        } else {
+          navigator.clipboard && navigator.clipboard.writeText(msg);
+          alert('Share text copied to clipboard!');
+        }
+      });
+
+      $('#exportBtn').addEventListener('click', ()=>{
+        const data = {score, highScore, totalAnswered, totalCorrect, streak, bestStreak, qCount};
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mathgame-stats.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    // ---------- Boot / init ----------
+    function boot(){
+      loadState();
+      updateUI();
+      // generate initial question
+      generateQuestion();
+      showQuestion(currentQ);
+      bindEvents();
+
+      // init howler after library loads
+      initHowler();
+
+      // warm up GSAP small animation
+      gsap.fromTo('.game', {y:20, opacity:0}, {y:0, opacity:1, duration:0.8, ease:'power2.out'});
+
+      // small idle confetti on first correct later will be celebratory; not auto-run.
+    }
+
+    // accessibility: focus input on click of question area
+    questionText.addEventListener('click', ()=> answerInput.focus());
+
+    // init on DOM ready
+    document.addEventListener('DOMContentLoaded', boot);
+
+    // expose some dev functions to window for debugging convenience
+    window._mathGame = {
+      generateQuestion, checkAnswer, skipQuestion, getState: ()=>({score, highScore, totalAnswered, totalCorrect, streak, bestStreak, qCount})
+    };
+
+  })();
+  </script>
+</body>
+</html>
